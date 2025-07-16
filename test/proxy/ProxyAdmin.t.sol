@@ -2,15 +2,15 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {ProxyAdmin} from "src/proxy/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from "src/proxy/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "src/proxy/ProxyAdmin.sol";
 import {MockImplementationV1, MockImplementationV2} from "test/mocks/MockImplementation.sol";
 
 contract ProxyAdminTest is Test {
 	bytes32 internal constant IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
-	address private owner = makeAddr("owner");
-	address private nonOwner = makeAddr("nonOwner");
+	address internal owner = makeAddr("owner");
+	address internal nonOwner = makeAddr("nonOwner");
 
 	address internal proxyAdmin;
 	address internal proxy;
@@ -126,8 +126,7 @@ contract ProxyAdminTest is Test {
 
 	function test_ErrorHandling_InvalidCalldataLength() public {
 		vm.expectRevert(ProxyAdmin.InvalidCalldataLength.selector);
-		// Call with insufficient calldata (less than 4 bytes)
-		(bool success, ) = proxyAdmin.call(hex"1234"); // Only 2 bytes
+		(bool success, ) = proxyAdmin.call(hex"1234");
 		assertTrue(success);
 	}
 
@@ -141,11 +140,9 @@ contract ProxyAdminTest is Test {
 	function test_Integration_OwnershipTransferAffectsProxies() public {
 		executeTransferOwnership(nonOwner, owner, false);
 
-		// Old owner should not be able to upgrade
 		vm.expectRevert(abi.encodeWithSelector(ProxyAdmin.UnauthorizedAccount.selector, owner));
 		executeUpgradeAndCall(implementationV2, "", owner, 0, true);
 
-		// New owner should be able to upgrade
 		executeUpgradeAndCall(implementationV2, "", nonOwner, 0, false);
 	}
 

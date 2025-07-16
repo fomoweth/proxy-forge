@@ -2,7 +2,6 @@
 pragma solidity ^0.8.30;
 
 import {Test} from "forge-std/Test.sol";
-import {ProxyAdmin} from "src/proxy/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from "src/proxy/TransparentUpgradeableProxy.sol";
 import {MockImplementationV1, MockImplementationV2} from "test/mocks/MockImplementation.sol";
 
