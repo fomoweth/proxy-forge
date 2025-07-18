@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-/// @title ProxyAdmin
-/// @notice Gas-optimized admin contract for managing transparent upgradeable proxies
-contract ProxyAdmin {
+/// @title ForgeProxyAdmin
+/// @notice Ultra-lightweight admin contract responsible for upgrading ForgeProxy instances
+/// @dev Gas-optimized proxy administration contract that handles upgrade operations
+///      with minimal overhead. This contract is automatically deployed for each proxy
+///      and serves as the administrative interface for upgrades and ownership management.
+contract ForgeProxyAdmin {
 	/// @notice Thrown when calldata length is insufficient for function call
 	/// @dev Requires at least 4 bytes for function selector
 	error InvalidCalldataLength();
@@ -33,8 +36,8 @@ contract ProxyAdmin {
 	/// 	 uint256(keccak256(bytes("eip1967.proxyAdmin.owner"))) - 1
 	uint256 private constant OWNER_SLOT = 0x9bc353c4ee8d049c7cb68b79467fc95d9015a8a82334bd0e61ce699e20cb5bd5;
 
-	/// @notice Initializes the ProxyAdmin with an initial owner
-	/// @param initialOwner Address that will become the owner of this ProxyAdmin
+	/// @notice Initializes the ForgeProxyAdmin with an initial owner
+	/// @param initialOwner Address that will become the owner of this ForgeProxyAdmin
 	constructor(address initialOwner) {
 		assembly ("memory-safe") {
 			// Validate initialOwner is not zero address

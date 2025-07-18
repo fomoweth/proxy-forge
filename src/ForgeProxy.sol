@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {ProxyAdmin} from "./ProxyAdmin.sol";
+import {ForgeProxyAdmin} from "./ForgeProxyAdmin.sol";
 
-/// @title TransparentUpgradeableProxy
-/// @notice Gas-optimized transparent upgradeable proxy implementation
-contract TransparentUpgradeableProxy {
+/// @title ForgeProxy
+/// @notice Transparent upgradeable proxy implementation with radical gas optimizations
+/// @dev This contract auto-deploys a dedicated ForgeProxyAdmin during construction,
+///      enforces fallback-based delegation, and blocks admin from calling implementation functions.
+///      It is optimized using inline assembly for efficient storage access and call routing.
+contract ForgeProxy {
 	/// @notice Thrown when an invalid admin address is provided
 	error InvalidAdmin();
 
@@ -43,13 +46,13 @@ contract TransparentUpgradeableProxy {
 	/// @dev An immutable address for the admin for gas-efficient access control
 	uint256 private immutable _admin;
 
-	/// @notice Initializes transparent upgradeable proxy with automatic ProxyAdmin creation
+	/// @notice Initializes the ForgeProxy with automatic ForgeProxyAdmin creation
 	/// @param implementation Address of the initial implementation
-	/// @param initialOwner Address designated as the owner of the created ProxyAdmin
+	/// @param initialOwner Address designated as the owner of the created ForgeProxyAdmin
 	/// @param data Optional initialization data to call on the implementation (can be empty bytes)
 	constructor(address implementation, address initialOwner, bytes memory data) payable {
-		// Prepare ProxyAdmin creation bytecode with constructor parameters
-		bytes memory bytecode = bytes.concat(type(ProxyAdmin).creationCode, abi.encode(initialOwner));
+		// Prepare ForgeProxyAdmin creation bytecode with constructor parameters
+		bytes memory bytecode = bytes.concat(type(ForgeProxyAdmin).creationCode, abi.encode(initialOwner));
 
 		uint256 admin;
 
@@ -93,7 +96,7 @@ contract TransparentUpgradeableProxy {
 				}
 			}
 
-			// Deploy ProxyAdmin contract
+			// Deploy ForgeProxyAdmin contract
 			admin := create(0x00, add(bytecode, 0x20), mload(bytecode))
 
 			// Verify that deployment was successful

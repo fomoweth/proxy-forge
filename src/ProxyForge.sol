@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {ITransparentProxyFactory} from "src/interfaces/ITransparentProxyFactory.sol";
-import {TransparentUpgradeableProxy} from "src/proxy/TransparentUpgradeableProxy.sol";
+import {IProxyForge} from "src/interfaces/IProxyForge.sol";
+import {ForgeProxy} from "src/ForgeProxy.sol";
 
-/// @title TransparentProxyFactory
-/// @notice Gas-optimized factory for deploying and managing transparent upgradeable proxies
-/// @dev This implementation prioritizes gas efficiency and minimal storage overhead over
-///      comprehensive registry features. Key optimizations include:
-///      - Assembly-based operations for maximum gas savings
-///      - Slot-based storage using keccak256 hashing instead of mappings
-///      - Minimal event emission with pre-computed topics
-///      - Streamlined authorization using owner-based access control
-///      - Efficient address computation for both CREATE and CREATE2 deployments
-contract TransparentProxyFactory is ITransparentProxyFactory {
+/// @title ProxyForge
+/// @notice Factory contract for deploying, upgrading, and managing ForgeProxy instances with optional deterministic address support
+/// @dev Supports both CREATE and CREATE2 deployment flows, tracks proxy metadata using keccak256-hashed storage slots (no mappings),
+///      and handles upgrades via associated ForgeProxyAdmin contracts. Includes utility methods for computing proxy/admin addresses,
+///      slot-based metadata retrieval, and gas-optimized deployment with initialization support.
+contract ProxyForge is IProxyForge {
 	/// @dev Pre-computed keccak256 hash for ProxyDeployed event topic
 	///      keccak256(bytes("ProxyDeployed(address,address,bytes32)"))
 	uint256 private constant PROXY_DEPLOYED_TOPIC = 0xd283ed05905c0eb69fe3ef042c6ad706d8d9c75b138624098de540fa2c011a05;
@@ -49,12 +45,12 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 	///      uint32(bytes4(keccak256(bytes("PROXY_OWNER_SLOT"))))
 	uint256 private constant PROXY_OWNER_SLOT_SEED = 0xc12fa8d6;
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function deploy(address implementation, address owner) public payable virtual returns (address proxy) {
 		return _deploy(implementation, owner, bytes32(0), false, _emptyData());
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function deployAndCall(
 		address implementation,
 		address owner,
@@ -63,7 +59,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		return _deploy(implementation, owner, bytes32(0), false, data);
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function deployDeterministic(
 		address implementation,
 		address owner,
@@ -72,7 +68,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		return _deploy(implementation, owner, salt, true, _emptyData());
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function deployDeterministicAndCall(
 		address implementation,
 		address owner,
@@ -90,11 +86,11 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		bool isDeterministic,
 		bytes calldata data
 	) internal virtual returns (address proxy) {
-		// Encode constructor parameters for TransparentUpgradeableProxy
+		// Encode constructor parameters for ForgeProxy
 		bytes memory parameters = abi.encode(implementation, address(this), data);
 
 		// Concatenate proxy creation code with encoded arguments to assemble complete initialization code
-		bytes memory initCode = bytes.concat(type(TransparentUpgradeableProxy).creationCode, parameters);
+		bytes memory initCode = bytes.concat(type(ForgeProxy).creationCode, parameters);
 
 		assembly ("memory-safe") {
 			// Validate implementation has contract code
@@ -144,12 +140,12 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		_setProxyOwner(proxy, owner);
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function upgrade(address proxy, address implementation) public payable virtual {
 		_upgradeAndCall(getProxyAdmin(proxy), proxy, implementation, _emptyData());
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function upgradeAndCall(address proxy, address implementation, bytes calldata data) public payable virtual {
 		_upgradeAndCall(getProxyAdmin(proxy), proxy, implementation, data);
 	}
@@ -226,7 +222,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		_setProxyImplementation(proxy, implementation);
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function setProxyOwner(address proxy, address owner) public payable virtual {
 		assembly ("memory-safe") {
 			// Compute storage slot for proxy owner
@@ -279,7 +275,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		}
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function getProxyAdmin(address proxy) public view virtual returns (address admin) {
 		assembly ("memory-safe") {
 			mstore(0x0c, PROXY_ADMIN_SLOT_SEED)
@@ -288,7 +284,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		}
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function getProxyImplementation(address proxy) public view virtual returns (address implementation) {
 		assembly ("memory-safe") {
 			mstore(0x0c, PROXY_IMPLEMENTATION_SLOT_SEED)
@@ -297,7 +293,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		}
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function getProxyOwner(address proxy) public view virtual returns (address owner) {
 		assembly ("memory-safe") {
 			mstore(0x0c, PROXY_OWNER_SLOT_SEED)
@@ -306,7 +302,7 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 		}
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function computeProxyAddress(
 		address implementation,
 		bytes32 salt,
@@ -314,16 +310,16 @@ contract TransparentProxyFactory is ITransparentProxyFactory {
 	) public view virtual returns (address proxy) {
 		// Prepare the same initialization code that would be used in actual deployment
 		bytes memory parameters = abi.encode(implementation, address(this), data);
-		bytes memory initCode = bytes.concat(type(TransparentUpgradeableProxy).creationCode, parameters);
+		bytes memory initCode = bytes.concat(type(ForgeProxy).creationCode, parameters);
 		return _computeCreate2Address(address(this), salt, initCode);
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function computeProxyAddress(uint256 nonce) public view virtual returns (address proxy) {
 		return _computeCreateAddress(address(this), nonce);
 	}
 
-	/// @inheritdoc ITransparentProxyFactory
+	/// @inheritdoc IProxyForge
 	function computeProxyAdminAddress(address proxy) public view virtual returns (address admin) {
 		assembly ("memory-safe") {
 			// Validate proxy is not zero address

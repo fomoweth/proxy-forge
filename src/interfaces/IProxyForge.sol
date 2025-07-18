@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-/// @title ITransparentProxyFactory
-/// @notice Interface for a gas-optimized transparent proxy factory
-interface ITransparentProxyFactory {
+/// @title IProxyForge
+/// @notice Interface for ProxyForge contract
+interface IProxyForge {
 	/// @notice Thrown when an invalid proxy address is provided
 	error InvalidProxy();
 
@@ -52,13 +52,13 @@ interface ITransparentProxyFactory {
 	/// @param owner Address of the new owner
 	event ProxyOwnerChanged(address indexed proxy, address indexed owner);
 
-	/// @notice Deploys a transparent upgradeable proxy using CREATE opcode
+	/// @notice Deploys a proxy using CREATE opcode
 	/// @param implementation Address of the initial implementation contract
 	/// @param owner Address designated as the owner of the proxy on this factory
 	/// @return proxy Address of the deployed proxy contract
 	function deploy(address implementation, address owner) external payable returns (address proxy);
 
-	/// @notice Deploys a transparent upgradeable proxy with initialization using CREATE opcode
+	/// @notice Deploys a proxy with initialization using CREATE opcode
 	/// @param implementation Address of the initial implementation contract
 	/// @param owner Address designated as the owner of the proxy on this factory
 	/// @param data Initialization data to call on the implementation (can be empty bytes)
@@ -69,7 +69,7 @@ interface ITransparentProxyFactory {
 		bytes calldata data
 	) external payable returns (address proxy);
 
-	/// @notice Deploys a transparent upgradeable proxy using CREATE2 opcode
+	/// @notice Deploys a proxy using CREATE2 opcode
 	/// @param implementation Address of the initial implementation contract
 	/// @param owner Address designated as the owner of the proxy on this factory
 	/// @param salt A unique 32-byte value used in deterministic address derivation
@@ -80,7 +80,7 @@ interface ITransparentProxyFactory {
 		bytes32 salt
 	) external payable returns (address proxy);
 
-	/// @notice Deploys a transparent upgradeable proxy with initialization using CREATE2 opcode
+	/// @notice Deploys a proxy with initialization using CREATE2 opcode
 	/// @param implementation Address of the initial implementation contract
 	/// @param owner Address designated as the owner of the proxy on this factory
 	/// @param salt A unique 32-byte value used in deterministic address derivation
@@ -127,7 +127,7 @@ interface ITransparentProxyFactory {
 	/// @param owner Address of the new owner
 	function setProxyOwner(address proxy, address owner) external payable;
 
-	/// @notice Computes the deterministic address of a transparent upgradeable proxy using CREATE2 opcode
+	/// @notice Computes the deterministic address of a proxy using CREATE2 opcode
 	/// @param implementation Address of the implementation contract
 	/// @param salt A unique 32-byte value used in deterministic address derivation
 	/// @param data Initialization data for the proxy (can be empty bytes)
@@ -138,7 +138,7 @@ interface ITransparentProxyFactory {
 		bytes calldata data
 	) external view returns (address proxy);
 
-	/// @notice Computes the address of a transparent upgradeable proxy using CREATE opcode
+	/// @notice Computes the address of a proxy using CREATE opcode
 	/// @dev Uses RLP encoding to predict CREATE-based deployment addresses
 	/// @param nonce The nonce value for CREATE address computation (must be < 2^64 - 1 per EIP-2681)
 	/// @return proxy The predicted proxy address

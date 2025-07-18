@@ -2,12 +2,12 @@
 pragma solidity ^0.8.30;
 
 import {Script, console2 as console, stdJson} from "forge-std/Script.sol";
-import {TransparentProxyFactory} from "src/factory/TransparentProxyFactory.sol";
+import {ProxyForge} from "src/ProxyForge.sol";
 
-contract DeployFactory is Script {
+contract Deploy is Script {
 	using stdJson for string;
 
-	bytes32 internal constant FACTORY_SALT = keccak256(bytes("TUPF"));
+	bytes32 internal constant FACTORY_SALT = keccak256(bytes("ProxyForge"));
 
 	string internal constant TEST_MNEMONIC = "test test test test test test test test test test test junk";
 
@@ -22,11 +22,8 @@ contract DeployFactory is Script {
 		bytes32 salt = vm.envOr({name: "FACTORY_SALT", defaultValue: FACTORY_SALT});
 		address deployer = configureBroadcaster();
 
-		string[] memory chainAliases = vm.envString("CHAINS", ",");
-
-		for (uint256 i; i < chainAliases.length; ++i) {
-			deployToChain(chainAliases[i], deployer, salt);
-		}
+		string[] memory chains = vm.envString("CHAINS", ",");
+		for (uint256 i; i < chains.length; ++i) deployToChain(chains[i], deployer, salt);
 	}
 
 	function deployToChain(
@@ -36,36 +33,24 @@ contract DeployFactory is Script {
 	) internal broadcast(chainAlias, deployer) {
 		Chain memory chain = getChain(block.chainid);
 
-		string memory path = string.concat(
-			"./deployments/factory/",
-			vm.toString(block.chainid),
-			"-",
-			vm.toString(block.timestamp),
-			".json"
-		);
+		string memory path = string.concat("./deployments/", vm.toString(block.chainid), ".json");
 
 		console.log("======================================================================");
 		console.log("Deploying on:", chain.name);
 
-		address factory = address(new TransparentProxyFactory{salt: salt}());
-
-		string memory obj = "obj";
-		obj.serialize("name", string("TransparentProxyFactory"));
-		obj.serialize("address", vm.toString(factory));
-		obj.serialize("salt", vm.toString(salt));
-		obj = obj.serialize("timestamp", vm.toString(block.timestamp));
+		address instance = address(new ProxyForge{salt: salt}());
 
 		string memory json = "json";
-		json.serialize("network", chain.name);
 		json.serialize("chainAlias", chainAlias);
 		json.serialize("chainId", chain.chainId);
-		json.serialize("deployer", deployer);
+		json.serialize("address", vm.toString(instance));
+		json.serialize("salt", vm.toString(salt));
 		json.serialize("blockNumber", block.number);
 		json.serialize("timestamp", block.timestamp);
-		json = json.serialize("deployment", obj);
+		json = json.serialize("deployer", deployer);
 		json.write(path);
 
-		console.log("Deployed at:", factory);
+		console.log("Deployed at:", instance);
 		console.log("File Path:", path);
 		console.log("======================================================================");
 	}
