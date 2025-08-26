@@ -4,7 +4,7 @@ pragma solidity ^0.8.30;
 contract MockImplementationV1 {
 	error AlreadyInitialized();
 
-	event Initialized(address indexed initializer, uint256 indexed value);
+	event Initialized(address indexed msgSender, uint256 indexed msgValue);
 
 	event Deposited(address indexed msgSender, uint256 indexed msgValue);
 
@@ -16,11 +16,11 @@ contract MockImplementationV1 {
 		if (initialized) revert AlreadyInitialized();
 		initialized = true;
 		value = abi.decode(params, (uint256));
-		emit Initialized(msg.sender, version());
+		emit Initialized(msg.sender, msg.value);
 	}
 
-	function setValue(uint256 newValue) external {
-		value = newValue;
+	function setValue(uint256 newValue) external returns (uint256) {
+		return value = newValue;
 	}
 
 	function getValue() external view returns (uint256) {
@@ -31,12 +31,8 @@ contract MockImplementationV1 {
 		emit Deposited(msg.sender, msg.value);
 	}
 
-	function isInitialized() external view returns (bool) {
-		return initialized;
-	}
-
-	function version() public pure virtual returns (uint256) {
-		return 1;
+	function version() public pure virtual returns (string memory) {
+		return "1";
 	}
 }
 
@@ -48,18 +44,18 @@ contract MockImplementationV2 is MockImplementationV1 {
 	function initialize(bytes calldata params) external payable virtual override {
 		if (!initialized) revert NotInitialized();
 		data = abi.decode(params, (string));
-		emit Initialized(msg.sender, version());
+		emit Initialized(msg.sender, msg.value);
 	}
 
-	function setData(string calldata newData) external {
-		data = newData;
+	function setData(string calldata newData) external returns (string memory) {
+		return data = newData;
 	}
 
 	function getData() external view returns (string memory) {
 		return data;
 	}
 
-	function version() public pure virtual override returns (uint256) {
-		return 2;
+	function version() public pure virtual override returns (string memory) {
+		return "2";
 	}
 }
