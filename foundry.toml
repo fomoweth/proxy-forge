@@ -22,6 +22,8 @@ fs_permissions = [
     { access = "read", path = "./test"}
 ]
 
+gas_reports = ["ProxyForge", "ForgeProxy", "ForgeProxyAdmin"]
+
 remappings = [
 	"forge-std/=lib/forge-std/src/",
 	"createx/=lib/createx/src"
