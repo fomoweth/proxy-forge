@@ -237,6 +237,29 @@ contract ProxyForgeTest is BaseTest {
 		}
 	}
 
+	function test_revoke() public {
+		address proxy = forge.deploy(implementationV1, alice);
+		address admin = forge.adminOf(proxy);
+		assertEq(getProxyAdminOwner(admin), address(forge));
+		assertEq(forge.implementationOf(proxy), implementationV1);
+		assertEq(forge.ownerOf(proxy), alice);
+
+		vm.expectEmit(true, true, true, true, address(forge));
+		emit IProxyForge.ProxyRevoked(proxy);
+
+		vm.prank(alice);
+		forge.revoke(proxy);
+		assertEq(getProxyAdminOwner(admin), alice);
+		assertEq(forge.implementationOf(proxy), address(0));
+		assertEq(forge.ownerOf(proxy), address(0));
+	}
+
+	function test_revoke_revertsWithUnauthorizedAccount() public {
+		address proxy = forge.deploy(implementationV1, alice);
+		vm.expectRevert(abi.encodeWithSelector(ForgeProxyAdmin.UnauthorizedAccount.selector, address(this)));
+		forge.revoke(proxy);
+	}
+
 	function test_changeOwner() public {
 		address proxy = forge.deploy(implementationV1, alice);
 
