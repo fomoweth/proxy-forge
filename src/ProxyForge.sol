@@ -23,6 +23,11 @@ contract ProxyForge is IProxyForge {
 	uint256 private constant PROXY_OWNER_CHANGED_EVENT_SIGNATURE =
 		0x1b185f8166e5b540f041c2132c66d6c691b0674cd3a95ccc9592a43dd64ad6e2;
 
+	/// @notice Precomputed {ProxyRevoked} event signature
+	/// @dev keccak256(bytes("ProxyRevoked(address)"))
+	uint256 private constant PROXY_REVOKED_EVENT_SIGNATURE =
+		0x4b0f58242c231a580ee42fe1dd7389c8e7520590afe33c21809305a6014703a1;
+
 	/// @notice Precomputed seed for generating proxy implementation storage slots
 	/// @dev bytes4(keccak256(bytes("PROXY_IMPLEMENTATION_SLOT")))
 	uint256 private constant PROXY_IMPLEMENTATION_SLOT_SEED = 0xa1337b4d;
@@ -168,7 +173,7 @@ contract ProxyForge is IProxyForge {
 			calldatacopy(add(ptr, 0xa0), data.offset, data.length)
 
 			// Execute call to proxy admin
-			if iszero(call(gas(), admin, callvalue(), add(ptr, 0x1c), add(data.length, 0xa4), 0x00, 0x00)) {
+			if iszero(call(gas(), admin, callvalue(), add(ptr, 0x1c), add(data.length, 0xa4), codesize(), 0x00)) {
 				if iszero(returndatasize()) {
 					mstore(0x00, 0x55299b49) // UpgradeFailed()
 					revert(0x1c, 0x04)
@@ -181,6 +186,51 @@ contract ProxyForge is IProxyForge {
 			sstore(slot, implementation)
 			// emit {ProxyUpgraded} event
 			log3(codesize(), 0x00, PROXY_UPGRADED_EVENT_SIGNATURE, proxy, implementation)
+		}
+	}
+
+	/// @inheritdoc IProxyForge
+	function revoke(address proxy) external payable {
+		_revoke(adminOf(proxy), proxy);
+	}
+
+	/// @dev Internal function to handle proxy revocation logic
+	function _revoke(address admin, address proxy) internal {
+		assembly ("memory-safe") {
+			// Compute proxy owner storage slot
+			mstore(0x00, or(shl(0x60, proxy), PROXY_OWNER_SLOT_SEED))
+			let slot := keccak256(0x00, 0x20)
+
+			// Verify caller is owner of proxy
+			if iszero(eq(sload(slot), caller())) {
+				mstore(0x00, 0x32b2baa3) // UnauthorizedAccount(address)
+				mstore(0x20, caller())
+				revert(0x1c, 0x24)
+			}
+
+			// Cache free memory pointer
+			let ptr := mload(0x40)
+			// Store function selector
+			mstore(ptr, 0xf2fde38b) // transferOwnership(address)
+			// Store new owner address
+			mstore(add(ptr, 0x20), caller())
+
+			// Execute call to proxy admin
+			if iszero(call(gas(), admin, 0x00, add(ptr, 0x1c), 0x24, codesize(), 0x00)) {
+				returndatacopy(ptr, 0x00, returndatasize())
+				revert(ptr, returndatasize())
+			}
+
+			// Clear proxy owner storage slot
+			sstore(slot, 0x00)
+
+			// Compute proxy implementation storage slot
+			mstore(0x00, or(shl(0x60, proxy), PROXY_IMPLEMENTATION_SLOT_SEED))
+			// Clear proxy implementation storage slot
+			sstore(keccak256(0x00, 0x20), 0x00)
+
+			// emit {ProxyRevoked} event
+			log2(codesize(), 0x00, PROXY_REVOKED_EVENT_SIGNATURE, proxy)
 		}
 	}
 
