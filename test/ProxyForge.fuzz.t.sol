@@ -167,6 +167,22 @@ contract ProxyForgeTestFuzzTest is BaseTest {
 		assertEq(proxy.balance, value);
 	}
 
+	function test_fuzz_revoke(address caller) public assumeEOA(caller) impersonate(caller) {
+		address proxy = forge.deploy(implementationV1, caller);
+		address admin = forge.adminOf(proxy);
+		assertEq(getProxyAdminOwner(admin), address(forge));
+		assertEq(forge.implementationOf(proxy), implementationV1);
+		assertEq(forge.ownerOf(proxy), caller);
+
+		vm.expectEmit(true, true, true, true, address(forge));
+		emit IProxyForge.ProxyRevoked(proxy);
+
+		forge.revoke(proxy);
+		assertEq(getProxyAdminOwner(admin), caller);
+		assertEq(forge.implementationOf(proxy), address(0));
+		assertEq(forge.ownerOf(proxy), address(0));
+	}
+
 	function test_fuzz_changeOwner(address oldOwner, address newOwner) public assumeEOAs(oldOwner, newOwner) {
 		address proxy = forge.deploy(implementationV1, oldOwner);
 		assertEq(forge.implementationOf(proxy), implementationV1);

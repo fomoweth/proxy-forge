@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 /// @title IProxyForge
+/// @notice Interface for a factory contract that manages deployment, upgrades, and ownership of upgradeable proxy contracts
 interface IProxyForge {
 	/// @notice Thrown when an invalid proxy address is provided
 	error InvalidProxy();
@@ -36,6 +37,10 @@ interface IProxyForge {
 	/// @param proxy Address of the proxy whose owner was changed
 	/// @param owner Address of the new owner
 	event ProxyOwnerChanged(address indexed proxy, address indexed owner);
+
+	/// @notice Emitted when a proxy is revoked (ownership transferred to its owner)
+	/// @param proxy Address of the proxy that was revoked
+	event ProxyRevoked(address indexed proxy);
 
 	/// @notice Deploys a new proxy using CREATE opcode
 	/// @param implementation Address of the initial implementation contract
@@ -88,6 +93,11 @@ interface IProxyForge {
 	/// @param implementation Address of the new implementation contract
 	/// @param data Optional initialization data to call on the new implementation (can be empty bytes)
 	function upgradeAndCall(address proxy, address implementation, bytes calldata data) external payable;
+
+	/// @notice Revokes factory management of a proxy, transferring admin contract ownership to caller
+	/// @dev After revocation, the proxy can no longer be managed through this factory
+	/// @param proxy Address of the proxy to revoke
+	function revoke(address proxy) external payable;
 
 	/// @notice Transfers ownership of a proxy to a new owner
 	/// @param proxy Address of the proxy whose ownership will be transferred
