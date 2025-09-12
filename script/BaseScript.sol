@@ -23,15 +23,17 @@ abstract contract BaseScript is Script {
 	}
 
 	function setUp() public virtual {
-		uint256 privateKey = vm.envOr({
+		broadcaster = vm.rememberKey(configurePrivateKey());
+	}
+
+	function configurePrivateKey() internal view virtual returns (uint256 privateKey) {
+		privateKey = vm.envOr({
 			name: "PRIVATE_KEY",
 			defaultValue: vm.deriveKey({
 				mnemonic: vm.envOr({name: "MNEMONIC", defaultValue: DEFAULT_MNEMONIC}),
 				index: uint8(vm.envOr({name: "EOA_INDEX", defaultValue: uint256(0)}))
 			})
 		});
-
-		broadcaster = vm.rememberKey(privateKey);
 	}
 
 	function generateJson(string memory path, string memory name, address instance, bytes32 salt) internal {
@@ -39,20 +41,22 @@ abstract contract BaseScript is Script {
 		json.serialize("address", instance);
 		json.serialize("blockNumber", vm.getBlockNumber());
 		json.serialize("name", name);
-		json.serialize("salt", vm.toString(salt));
+		json.serialize("salt", salt);
 		json = json.serialize("timestamp", vm.getBlockTimestamp());
 		json.write(path);
 	}
 
+	function prompt(string memory promptText) internal returns (string memory input) {
+		return prompt(promptText, new string(0));
+	}
+
 	function prompt(string memory promptText, string memory defaultValue) internal returns (string memory input) {
-		input = _prompt(promptText, defaultValue);
+		input = vm.prompt(string.concat(promptText, " (default: `", defaultValue, "`)"));
 		if (bytes(input).length == 0) input = defaultValue;
 	}
 
 	function promptAddress(string memory promptText, address defaultValue) internal returns (address) {
-		string memory input = _prompt(promptText, vm.toString(defaultValue));
-		if (bytes(input).length == 0) return defaultValue;
-		return vm.parseAddress(input);
+		return vm.parseAddress(prompt(promptText, vm.toString(defaultValue)));
 	}
 
 	function promptAddress(string memory promptText) internal returns (address) {
@@ -60,46 +64,42 @@ abstract contract BaseScript is Script {
 	}
 
 	function promptBool(string memory promptText, bool defaultValue) internal returns (bool) {
-		string memory input = _prompt(promptText, vm.toString(defaultValue));
-		if (bytes(input).length == 0) return defaultValue;
-		return vm.parseBool(input);
+		return vm.parseBool(prompt(promptText, vm.toString(defaultValue)));
 	}
 
 	function promptBool(string memory promptText) internal returns (bool) {
 		return promptBool(promptText, false);
 	}
 
-	function promptBytes(string memory promptText, bytes memory defaultValue) internal returns (bytes memory) {
-		string memory input = _prompt(promptText, vm.toString(defaultValue));
-		if (bytes(input).length == 0) return defaultValue;
-		return vm.parseBytes(input);
+	function promptUint256(string memory promptText, uint256 defaultValue) internal returns (uint256) {
+		return vm.parseUint(prompt(promptText, vm.toString(defaultValue)));
 	}
 
-	function promptBytes(string memory promptText) internal returns (bytes memory) {
-		return promptBytes(promptText, new bytes(0));
+	function promptUint256(string memory promptText) internal returns (uint256) {
+		return promptUint256(promptText, uint256(0));
+	}
+
+	function promptInt256(string memory promptText, int256 defaultValue) internal returns (int256) {
+		return vm.parseInt(prompt(promptText, vm.toString(defaultValue)));
+	}
+
+	function promptInt256(string memory promptText) internal returns (int256) {
+		return promptInt256(promptText, int256(0));
 	}
 
 	function promptBytes32(string memory promptText, bytes32 defaultValue) internal returns (bytes32) {
-		string memory input = _prompt(promptText, vm.toString(defaultValue));
-		if (bytes(input).length == 0) return defaultValue;
-		return vm.parseBytes32(input);
+		return vm.parseBytes32(prompt(promptText, vm.toString(defaultValue)));
 	}
 
 	function promptBytes32(string memory promptText) internal returns (bytes32) {
 		return promptBytes32(promptText, bytes32(0));
 	}
 
-	function promptUint(string memory promptText, uint256 defaultValue) internal returns (uint256) {
-		string memory input = _prompt(promptText, vm.toString(defaultValue));
-		if (bytes(input).length == 0) return defaultValue;
-		return vm.parseUint(input);
+	function promptBytes(string memory promptText, bytes memory defaultValue) internal returns (bytes memory) {
+		return vm.parseBytes(prompt(promptText, vm.toString(defaultValue)));
 	}
 
-	function promptUint(string memory promptText) internal returns (uint256) {
-		return promptUint(promptText, uint256(0));
-	}
-
-	function _prompt(string memory promptText, string memory defaultValue) private returns (string memory input) {
-		return vm.prompt(string.concat(promptText, " (default: '", defaultValue, "')"));
+	function promptBytes(string memory promptText) internal returns (bytes memory) {
+		return promptBytes(promptText, new bytes(0));
 	}
 }

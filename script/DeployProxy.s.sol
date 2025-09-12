@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {console2 as console} from "forge-std/console2.sol";
 import {IProxyForge} from "src/interfaces/IProxyForge.sol";
 import {BaseScript} from "./BaseScript.sol";
 
@@ -13,24 +12,17 @@ contract DeployProxy is BaseScript {
 
 		address implementation = vm.promptAddress("Implementation");
 		address owner = promptAddress("Owner", broadcaster);
-		bool isDeterministic = promptBool("Is Deterministic");
-		bytes32 salt = promptBytes32("Salt");
-		bytes memory data = promptBytes("Data");
 
-		console.log();
-		console.log("======================================================================");
-		console.log("Chain ID:", block.chainid);
+		bool isDeterministic = promptBool("Is Deterministic");
+		bytes32 salt;
+		if (isDeterministic) salt = promptBytes32("Salt");
+
+		bytes memory data = promptBytes("Data");
+		uint256 value;
+		if (data.length != 0) value = promptUint256("msg.value");
 
 		proxy = isDeterministic
-			? FORGE.deployDeterministicAndCall(implementation, owner, salt, data)
-			: FORGE.deployAndCall(implementation, owner, data);
-
-		console.log("Proxy:", proxy);
-		console.log("Implementation:", implementation);
-		console.log("Owner:", owner);
-		if (isDeterministic) console.log("Salt:", vm.toString(salt));
-		console.log("Data:", vm.toString(data));
-		console.log("======================================================================");
-		console.log();
+			? FORGE.deployDeterministicAndCall{value: value}(implementation, owner, salt, data)
+			: FORGE.deployAndCall{value: value}(implementation, owner, data);
 	}
 }

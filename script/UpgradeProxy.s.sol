@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {console2 as console} from "forge-std/console2.sol";
 import {IProxyForge} from "src/interfaces/IProxyForge.sol";
 import {BaseScript} from "./BaseScript.sol";
 
@@ -13,18 +12,11 @@ contract UpgradeProxy is BaseScript {
 
 		address proxy = vm.promptAddress("Proxy");
 		address implementation = vm.promptAddress("Implementation");
+
 		bytes memory data = promptBytes("Data");
+		uint256 value;
+		if (data.length != 0) value = promptUint256("msg.value");
 
-		console.log();
-		console.log("======================================================================");
-		console.log("Chain ID:", block.chainid);
-
-		FORGE.upgradeAndCall(proxy, implementation, data);
-
-		console.log("Proxy:", proxy);
-		console.log("Implementation:", implementation);
-		console.log("Data:", vm.toString(data));
-		console.log("======================================================================");
-		console.log();
+		FORGE.upgradeAndCall{value: value}(proxy, implementation, data);
 	}
 }
