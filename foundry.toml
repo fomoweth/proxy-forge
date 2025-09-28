@@ -29,6 +29,14 @@ remappings = [
 	"createx/=lib/createx/src"
 ]
 
+[fmt]
+line_length = 120
+tab_width = 4
+quote_style = "double"
+func_attrs_with_params_multiline = true
+inline_attribute_style = "compact"
+return_statement = "inline"
+
 [fuzz]
 runs = 5000
 max_test_rejects = 1000000
